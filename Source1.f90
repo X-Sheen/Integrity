@@ -866,10 +866,14 @@ do x = 1, xl
 				!interface curvature
 				kurv = n_x(z,y,x)*n_y(z,y,x)*(dnydx+dnxdy)+n_x(z,y,x)*n_z(z,y,x)*(dnzdx+dnxdz)+n_y(z,y,x)*n_z(z,y,x)*(dnydz+dnzdy)&
 				 -(n_y(z,y,x)**2+n_z(z,y,x)**2)*dnxdx-(n_x(z,y,x)**2+n_z(z,y,x)**2)*dnydy-(n_x(z,y,x)**2+n_y(z,y,x)**2)*dnzdz
-				val = 0.5d0*sigma*kurv
-				force(1) =val*gradx(z,y,x)
-				force(2) =val*grady(z,y,x)
-				force(3) =val*gradz(z,y,x)
+				!val = 0.5d0*sigma*kurv
+				!force(1) =val*gradx(z,y,x)
+				!force(2) =val*grady(z,y,x)
+				!force(3) =val*gradz(z,y,x)
+            val = sigma*kurv   !Laplace pressure term  
+             force(1) = val * n_x(z,y,x)
+             force(2) = val * n_y(z,y,x)
+             force(3) = val * n_z(z,y,x)
 			endif
 			! update velocity
 			ux(z,y,x) = ux(z,y,x)+0.5d0*force(1)/rho(z,y,x)
