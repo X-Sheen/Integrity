@@ -338,6 +338,8 @@ real*8 :: distance,center(par,3)
 real*8, intent(inout):: wall_dir(3,zl,yl,xl)
 integer, dimension(zl, yl, xl), intent(out):: walls_plate
 real*8:: walls_temp(zl,yl,xl), temp
+real*8 :: dist2, buf
+buf = 2.0d0  ! 附着缓冲层厚度（2-3 个格点）
 walls_old=walls_all
 walls_all=0
 walls=0
@@ -456,19 +458,33 @@ do x=1,xl
 end do!x
 
 !$OMP PARALLEL DO PRIVATE(distance), SCHEDULE(GUIDED)
+!do pp=1,par
+!  do x=1,xl
+!    do y=1,yl
+!      do z=1,zl
+!        distance= (dble(x)-center(pp,1))**2+(dble(y)-center(pp,2))**2+(dble(z)-center(pp,3))**2
+!        if(distance<=Rad**2)then
+!          walls(z,y,x)=pp ! Solid
+!          walls_all(z,y,x)=10
+!        end if
+!      end do!z
+!    end do!y
+!  end do!x
+!end do!pp
 do pp=1,par
-  do x=1,xl
-    do y=1,yl
-      do z=1,zl
-        distance= (dble(x)-center(pp,1))**2+(dble(y)-center(pp,2))**2+(dble(z)-center(pp,3))**2
-        if(distance<=Rad**2)then
-          walls(z,y,x)=pp ! Solid
-          walls_all(z,y,x)=10
-        end if
-      end do!z
-    end do!y
-  end do!x
-end do!pp
+ do x=1,xl
+  do y=1,yl
+   do z=1,zl
+      dist2 = (dble(x)-center(pp,1))**2 +  (dble(y)-center(pp,2))**2 +(dble(z)-center(pp,3))**2
+      if (dist2 <= (Rad + buf)**2) then
+          walls(z,y,x)     = pp
+          walls_all(z,y,x) = 1
+      endif
+
+   end do
+  end do
+ end do
+end do
 !$OMP END PARALLEL DO
 !$OMP PARALLEL DO PRIVATE(xf,yf,zf), SCHEDULE(GUIDED)
 do pp=1,par
