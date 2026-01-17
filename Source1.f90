@@ -1115,40 +1115,13 @@ do x=1,xl
 					!endif
 					!rho(z,y,x) = rho_r(z,y,x)+rho_b(z,y,x)
 					!rho_N(z,y,x)=(rho_r(z,y,x)-rho_b(z,y,x))/rho(z,y,x)      
-     ! if (z<=25) then
-     !     rho_R(z,y,x) = rho0
-     !     rho_B(z,y,x) = 0.0d0
-     ! else
-     !     rho_R(z,y,x) = 0.0d0
-     !     rho_B(z,y,x) = rho0
-     ! end if
-        
-real*8 :: Rb, xc, yc, zc, dist, dR, tmp        
-Rb = 20.0d0        ! 气泡半径
-xc = xl/2.0d0      ! 气泡中心
-yc = yl/2.0d0
-zc = zl/2.0d0
-
-do x=1,xl
- do y=1,yl
-  do z=1,zl
-  
-    dist = sqrt( (dble(x)-xc)**2 + (dble(y)-yc)**2 + (dble(z)-zc)**2 )
-    dR   = dist - Rb
-
-    ! tanh 平滑界面
-    tmp = dtanh(-0.804d0 * beta * dR)
-
-    rho_R(z,y,x) = 0.5d0*(1.0d0 + tmp)
-    rho_B(z,y,x) = 1.0d0 - rho_R(z,y,x)
-
-    ! 订单参数 rho_N
-    rho_N(z,y,x) = (rho_R(z,y,x)-rho_B(z,y,x)) / (rho_R(z,y,x)+rho_B(z,y,x))
-
-  end do
- end do
-end do
-
+      if (z<=25) then
+          rho_R(z,y,x) = rho0
+          rho_B(z,y,x) = 0.0d0
+      else
+          rho_R(z,y,x) = 0.0d0
+          rho_B(z,y,x) = rho0
+      end if
       rho(z,y,x) = rho_R(z,y,x)+rho_B(z,y,x)
       rho_N(z,y,x) =(rho_R(z,y,x)-rho_B(z,y,x))/rho(z,y,x)
       
