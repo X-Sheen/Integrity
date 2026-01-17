@@ -587,6 +587,10 @@ integer :: pp
 real*8:: wi_sum, coeff(3), z_check(2),theta
 real*8:: temp, sol(2), a(2), b(2), vec1(3), vec2(3), db1, db2
 real*8, intent(in):: wall_dir(3,zl,yl,xl)
+
+real*8 :: nwall(3), nint(3), alpha_c, cosT
+alpha_c = cita    ! cita = 设定的气泡–固体接触角 (以弧度输入)
+
 ! 补充颗粒内部 rho_N 值
 !$OMP PARALLEL DO PRIVATE(wi_sum, xn, yn, zn), SCHEDULE(GUIDED)
 do x=1,xl
@@ -682,58 +686,84 @@ end do !x
 
 ! 颗粒周围wetting boundary condition
 !$OMP PARALLEL DO PRIVATE(pp,nw,n_temp,theta,a,b,vec1,vec2,db1,db2,fnorm), SCHEDULE(GUIDED)
-do x=1,xl
-    do y=1,yl
-        do z=1,zl
-          if(pout(z,y,x)>=1.and.flag(z,y,x))then
-            pp=pout(z,y,x)
-            nw(1)=dble(x)-center(pp,1)
-            nw(2)=dble(y)-center(pp,2)
-            nw(3)=dble(z)-center(pp,3)
-            call unitization(nw)
-            n_temp=(/n_x(z,y,x), n_y(z,y,x), n_z(z,y,x)/)
-            if (  maxval ( abs( nw(:)-n_temp(:) ) ) <1.0d-5 ) then
-                theta=1.0d-5                                               !!!! ???
-            else
-                theta=dacos(dot_product(nw, n_temp))
-            endif
+! do x=1,xl
+!    do y=1,yl
+!        do z=1,zl
+!          if(pout(z,y,x)>=1.and.flag(z,y,x))then
+!            pp=pout(z,y,x)
+!            nw(1)=dble(x)-center(pp,1)
+!            nw(2)=dble(y)-center(pp,2)
+!           nw(3)=dble(z)-center(pp,3)
+!            call unitization(nw)
+!            n_temp=(/n_x(z,y,x), n_y(z,y,x), n_z(z,y,x)/)
+!            if (  maxval ( abs( nw(:)-n_temp(:) ) ) <1.0d-5 ) then
+!                theta=1.0d-5                                               !!!! ???
+!            else
+!                theta=dacos(dot_product(nw, n_temp))
+!            endif
             
-            a(1)=dcos(cita)-dsin(cita)*dcos(theta)/dsin(theta)
-            a(2)=dcos(cita)+dsin(cita)*dcos(theta)/dsin(theta)
-            b(1)=dsin(cita)/dsin(theta)
-            b(2)=-dsin(cita)/dsin(theta)
+!            a(1)=dcos(cita)-dsin(cita)*dcos(theta)/dsin(theta)
+!            a(2)=dcos(cita)+dsin(cita)*dcos(theta)/dsin(theta)
+!            b(1)=dsin(cita)/dsin(theta)
+!            b(2)=-dsin(cita)/dsin(theta)
            
-            vec1=a(1)*nw+b(1)*(/n_x(z,y,x), n_y(z,y,x), n_z(z,y,x)/)
-            vec2=a(2)*nw+b(2)*(/n_x(z,y,x), n_y(z,y,x), n_z(z,y,x)/)           
+!            vec1=a(1)*nw+b(1)*(/n_x(z,y,x), n_y(z,y,x), n_z(z,y,x)/)
+!            vec2=a(2)*nw+b(2)*(/n_x(z,y,x), n_y(z,y,x), n_z(z,y,x)/)           
                        
-            db1=(vec1(1)-n_x(z,y,x))**2+(vec1(2)-n_y(z,y,x))**2+(vec1(3)-n_z(z,y,x))**2
-            db2=(vec2(1)-n_x(z,y,x))**2+(vec2(2)-n_y(z,y,x))**2+(vec2(3)-n_z(z,y,x))**2
+!            db1=(vec1(1)-n_x(z,y,x))**2+(vec1(2)-n_y(z,y,x))**2+(vec1(3)-n_z(z,y,x))**2
+!            db2=(vec2(1)-n_x(z,y,x))**2+(vec2(2)-n_y(z,y,x))**2+(vec2(3)-n_z(z,y,x))**2
                         
-            if(db1<db2) then
-                n_x(z,y,x)=vec1(1)
-                n_y(z,y,x)=vec1(2)
-                n_z(z,y,x)=vec1(3)
+!            if(db1<db2) then
+!                n_x(z,y,x)=vec1(1)
+!                n_y(z,y,x)=vec1(2)
+!                n_z(z,y,x)=vec1(3)
                 
-                fnorm = dsqrt(gradx(z,y,x)**2 + grady(z,y,x)**2 + gradz(z,y,x)**2)
-                gradx(z,y,x)=fnorm*n_x(z,y,x)
-                grady(z,y,x)=fnorm*n_y(z,y,x)
-                gradz(z,y,x)=fnorm*n_z(z,y,x)
-            else
-                n_x(z,y,x)=vec2(1)
-                n_y(z,y,x)=vec2(2)
-                n_z(z,y,x)=vec2(3)
+!                fnorm = dsqrt(gradx(z,y,x)**2 + grady(z,y,x)**2 + gradz(z,y,x)**2)
+!                gradx(z,y,x)=fnorm*n_x(z,y,x)
+ !               grady(z,y,x)=fnorm*n_y(z,y,x)
+  !              gradz(z,y,x)=fnorm*n_z(z,y,x)
+  !          else
+  !              n_x(z,y,x)=vec2(1)
+  !              n_y(z,y,x)=vec2(2)
+  !              n_z(z,y,x)=vec2(3)
                 
-                fnorm = dsqrt(gradx(z,y,x)**2 + grady(z,y,x)**2 + gradz(z,y,x)**2)
-                gradx(z,y,x)=fnorm*n_x(z,y,x)
-                grady(z,y,x)=fnorm*n_y(z,y,x)
-                gradz(z,y,x)=fnorm*n_z(z,y,x)
-            end if
-        end if
-        end do!z
-    end do!y
-end do!x
+  !              fnorm = dsqrt(gradx(z,y,x)**2 + grady(z,y,x)**2 + gradz(z,y,x)**2)
+  !              gradx(z,y,x)=fnorm*n_x(z,y,x)
+  !              grady(z,y,x)=fnorm*n_y(z,y,x)
+  !              gradz(z,y,x)=fnorm*n_z(z,y,x)
+  !          end if
+  !      end if
+  !      end do!z
+  !  end do!y
+!end do!x
 !$OMP END PARALLEL DO
+!  Bubble–particle contact angle boundary
+if(pout(z,y,x) >= 1 .and. flag(z,y,x)) then
+    pp = pout(z,y,x)
 
+    ! 固体颗粒法向
+    nwall(1) = dble(x) - center(pp,1)
+    nwall(2) = dble(y) - center(pp,2)
+    nwall(3) = dble(z) - center(pp,3)
+    call unitization(nwall)
+
+    ! 界面法向
+    nint(1) = n_x(z,y,x)
+    nint(2) = n_y(z,y,x)
+    nint(3) = n_z(z,y,x)
+
+    ! 设定界面法向与固体法向夹角为接触角
+    cosT = cos(alpha_c)
+
+    n_x(z,y,x) = cosT*nwall(1) + sqrt(1.0d0-cosT*cosT)*nint(1)
+    n_y(z,y,x) = cosT*nwall(2) + sqrt(1.0d0-cosT*cosT)*nint(2)
+    n_z(z,y,x) = cosT*nwall(3) + sqrt(1.0d0-cosT*cosT)*nint(3)
+
+    ! 重新调整 grad 保持一致方向
+    gradx(z,y,x) = fnorm*n_x(z,y,x)
+    grady(z,y,x) = fnorm*n_y(z,y,x)
+    gradz(z,y,x) = fnorm*n_z(z,y,x)
+endif
 !平板周围wetting boundary condition
 !$OMP PARALLEL DO PRIVATE(nw,n_temp,theta,a,b,vec1,vec2,db1,db2,fnorm), SCHEDULE(GUIDED)
 do x=1,xl
