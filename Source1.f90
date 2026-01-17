@@ -1066,6 +1066,11 @@ double precision, dimension(zl,yl,xl) :: ux, uy, uz, rho
 double precision :: fi(0:18,1:zl,1:yl,1:xl),ffi(0:18,1:zl,1:yl,1:xl)
 double precision :: ri(0:18,1:zl,1:yl,1:xl), bi(0:18,1:zl,1:yl,1:xl)
 double precision:: x0,y0,z0, sqr,dis,dis_x,lamda_d,star,plus, dr, dist, tmp
+real*8 ::Rb,xc,yc,zc
+Rb = 20.0d0        ! 气泡半径
+xc = xl/2.0d0      ! 气泡中心
+yc = yl/2.0d0
+zc = zl/2.0d0
 ux = 0.0d0
 uy = 0.0d0
 uz = 0.0d0
@@ -1115,16 +1120,29 @@ do x=1,xl
 					!endif
 					!rho(z,y,x) = rho_r(z,y,x)+rho_b(z,y,x)
 					!rho_N(z,y,x)=(rho_r(z,y,x)-rho_b(z,y,x))/rho(z,y,x)      
-      if (z<=25) then
-          rho_R(z,y,x) = rho0
-          rho_B(z,y,x) = 0.0d0
-      else
-          rho_R(z,y,x) = 0.0d0
-          rho_B(z,y,x) = rho0
-      end if
-      rho(z,y,x) = rho_R(z,y,x)+rho_B(z,y,x)
-      rho_N(z,y,x) =(rho_R(z,y,x)-rho_B(z,y,x))/rho(z,y,x)
-      
+     ! if (z<=25) then
+     !     rho_R(z,y,x) = rho0
+     !     rho_B(z,y,x) = 0.0d0
+     ! else
+     !     rho_R(z,y,x) = 0.0d0
+     !     rho_B(z,y,x) = rho0
+     ! end if
+        
+     ! rho(z,y,x) = rho_R(z,y,x)+rho_B(z,y,x)
+     ! rho_N(z,y,x) =(rho_R(z,y,x)-rho_B(z,y,x))/rho(z,y,x)
+              
+    dist = sqrt( (dble(x)-xc)**2 + (dble(y)-yc)**2 + (dble(z)-zc)**2 )
+    dR   = dist - Rb
+
+    ! tanh 平滑界面
+    tmp = dtanh(-0.804d0 * beta * dR)
+
+    rho_R(z,y,x) = 0.5d0*(1.0d0 + tmp)
+    rho_B(z,y,x) = 1.0d0 - rho_R(z,y,x)
+
+    ! 订单参数 rho_N
+    rho_N(z,y,x) = (rho_R(z,y,x)-rho_B(z,y,x)) / (rho_R(z,y,x)+rho_B(z,y,x))
+        
       call equilf_SRT(ri(:,z,y,x), rho_R(z,y,x), ux(z,y,x), uy(z,y,x), uz(z,y,x))
 	  call equilf_SRT(bi(:,z,y,x), rho_B(z,y,x), ux(z,y,x), uy(z,y,x), uz(z,y,x))
       fi(:,z,y,x) = ri(:,z,y,x)+bi(:,z,y,x)
