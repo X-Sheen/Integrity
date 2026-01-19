@@ -238,13 +238,13 @@ do t = 0, int(tmax)
     end if
     
 !!if(1==2)then   
-!      call Lagrange_points(walls,center,rho_N,gradx,grady,gradz,n_x,n_y,n_z,flag,Lax,Lay,Laz,La_rhoN,La_nx,La_ny,La_nz,La_flag,ds,Shb)
-!      call capillary_force2(center,Lax,Lay,Laz,La_nx,La_ny,La_nz,La_rhoN,La_flag,ds,tension,tension_t)
-!      call momentum(walls,pout,center,Fpx,Fpy,Fpz,Tpx,Tpy,Tpz,upx,upy,upz,rpx,rpy,rpz,ffi,fi)
-!      call repulsive(center,Frex,Frey,Frez,Fg)
-!      call movement(center,center_old,center0,Fpx,Fpy,Fpz,Frex,Frey,Frez,Tpx,Tpy,Tpz,upx,upy,upz,rpx,rpy,rpz,Fg,mass,inertia_moment,tension,tension_t)
-!      call set_walls(walls,walls_old,walls_all,pin,pout,center,next_x,next_y,next_z,walls_plate,wall_dir)
-!      call refilling(next_x,next_y,next_z,pout,walls_old,center_old,upx,upy,upz,rpx,rpy,rpz,rho,rho_N,rho_R,rho_B,ux,uy,uz,ri,bi,fi) 
+      call Lagrange_points(walls,center,rho_N,gradx,grady,gradz,n_x,n_y,n_z,flag,Lax,Lay,Laz,La_rhoN,La_nx,La_ny,La_nz,La_flag,ds,Shb)
+      call capillary_force2(center,Lax,Lay,Laz,La_nx,La_ny,La_nz,La_rhoN,La_flag,ds,tension,tension_t)
+      call momentum(walls,pout,center,Fpx,Fpy,Fpz,Tpx,Tpy,Tpz,upx,upy,upz,rpx,rpy,rpz,ffi,fi)
+      call repulsive(center,Frex,Frey,Frez,Fg)
+      call movement(center,center_old,center0,Fpx,Fpy,Fpz,Frex,Frey,Frez,Tpx,Tpy,Tpz,upx,upy,upz,rpx,rpy,rpz,Fg,mass,inertia_moment,tension,tension_t)
+      call set_walls(walls,walls_old,walls_all,pin,pout,center,next_x,next_y,next_z,walls_plate,wall_dir)
+      call refilling(next_x,next_y,next_z,pout,walls_old,center_old,upx,upy,upz,rpx,rpy,rpz,rho,rho_N,rho_R,rho_B,ux,uy,uz,ri,bi,fi) 
 !end if
     call derivatives(walls_all,pin,pout,center,next_x,next_y,next_z,rho_N,gradx,grady,gradz,n_x,n_y,n_z,flag,walls_plate,wall_dir)
 	call collision(walls_all,pout,next_x,next_y,next_z,flag,n_x,n_y,n_z,gradx,grady,gradz,rho,rho_N,ux,uy,uz,fi,ffi,M,M_inv)
@@ -603,6 +603,7 @@ integer :: pp
 real*8:: wi_sum, coeff(3), z_check(2),theta
 real*8:: temp, sol(2), a(2), b(2), vec1(3), vec2(3), db1, db2
 real*8, intent(in):: wall_dir(3,zl,yl,xl)
+double precision :: nint_new(3),proj,gradnorm
 
 real*8 :: nwall(3), nint(3), alpha_c, cosT
 alpha_c = cita    ! cita = 设定的气泡–固体接触角 (以弧度输入)
@@ -754,31 +755,40 @@ end do !x
 !end do!x
 !$OMP END PARALLEL DO
 !  Bubble–particle contact angle boundary
-if(pout(z,y,x) >= 1 .and. flag(z,y,x)) then
+if (pout(z,y,x) >= 1 .and. flag(z,y,x)) then
+
     pp = pout(z,y,x)
 
-    ! 固体颗粒法向
+    ! Solid surface normal: normalized vector
     nwall(1) = dble(x) - center(pp,1)
     nwall(2) = dble(y) - center(pp,2)
     nwall(3) = dble(z) - center(pp,3)
     call unitization(nwall)
 
-    ! 界面法向
+    ! Current interface normal
     nint(1) = n_x(z,y,x)
     nint(2) = n_y(z,y,x)
     nint(3) = n_z(z,y,x)
 
-    ! 设定界面法向与固体法向夹角为接触角
-    cosT = cos(alpha_c)
+    ! Projected correction to enforce: n_int_new · n_wall = cos(contact_angle)
+    proj = dot_product(nint,nwall) - cos(alpha_c)
 
-    n_x(z,y,x) = cosT*nwall(1) + sqrt(1.0d0-cosT*cosT)*nint(1)
-    n_y(z,y,x) = cosT*nwall(2) + sqrt(1.0d0-cosT*cosT)*nint(2)
-    n_z(z,y,x) = cosT*nwall(3) + sqrt(1.0d0-cosT*cosT)*nint(3)
+    nint_new(1) = nint(1) - proj * nwall(1)
+    nint_new(2) = nint(2) - proj * nwall(2)
+    nint_new(3) = nint(3) - proj * nwall(3)
 
-    ! 重新调整 grad 保持一致方向
-    gradx(z,y,x) = fnorm*n_x(z,y,x)
-    grady(z,y,x) = fnorm*n_y(z,y,x)
-    gradz(z,y,x) = fnorm*n_z(z,y,x)
+    call unitization(nint_new)
+
+    ! Write back to the gradient and normal
+    n_x(z,y,x) = nint_new(1)
+    n_y(z,y,x) = nint_new(2)
+    n_z(z,y,x) = nint_new(3)
+
+    gradnorm = sqrt(gradx(z,y,x)**2 + grady(z,y,x)**2 + gradz(z,y,x)**2)
+    gradx(z,y,x) = gradnorm * nint_new(1)
+    grady(z,y,x) = gradnorm * nint_new(2)
+    gradz(z,y,x) = gradnorm * nint_new(3)
+
 endif
 !平板周围wetting boundary condition
 !$OMP PARALLEL DO PRIVATE(nw,n_temp,theta,a,b,vec1,vec2,db1,db2,fnorm), SCHEDULE(GUIDED)
