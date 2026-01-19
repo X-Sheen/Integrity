@@ -920,8 +920,9 @@ do x = 1, xl
 				dnzdy = 3.0d0*dnzdy
 				dnzdz = 3.0d0*dnzdz
 				!interface curvature
-				kurv = n_x(z,y,x)*n_y(z,y,x)*(dnydx+dnxdy)+n_x(z,y,x)*n_z(z,y,x)*(dnzdx+dnxdz)+n_y(z,y,x)*n_z(z,y,x)*(dnydz+dnzdy)&
-				 -(n_y(z,y,x)**2+n_z(z,y,x)**2)*dnxdx-(n_x(z,y,x)**2+n_z(z,y,x)**2)*dnydy-(n_x(z,y,x)**2+n_y(z,y,x)**2)*dnzdz
+				!kurv = n_x(z,y,x)*n_y(z,y,x)*(dnydx+dnxdy)+n_x(z,y,x)*n_z(z,y,x)*(dnzdx+dnxdz)+n_y(z,y,x)*n_z(z,y,x)*(dnydz+dnzdy)&
+				! -(n_y(z,y,x)**2+n_z(z,y,x)**2)*dnxdx-(n_x(z,y,x)**2+n_z(z,y,x)**2)*dnydy-(n_x(z,y,x)**2+n_y(z,y,x)**2)*dnzdz
+                kurv = -( dnxdx + dnydy + dnzdz )
 				!val = 0.5d0*sigma*kurv
 				!force(1) =val*gradx(z,y,x)
 				!force(2) =val*grady(z,y,x)
